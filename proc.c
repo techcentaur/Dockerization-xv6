@@ -532,3 +532,21 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+uint create_container(void) {
+  for (int i=0; i<maxContainerNum; i++) {
+    if (containers[i].containerAlive==0) {
+      containers[i].containerAlive = 1;
+      return (uint) i;
+    }
+  }
+  return -1;
+}
+
+uint destroy_container(uint container_id) {
+  if (container_id<maxContainerNum) {
+    containers[container_id].containerAlive = 0;
+    return 0;
+  }
+  return -1;
+}
