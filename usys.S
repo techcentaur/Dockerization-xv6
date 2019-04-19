@@ -30,6 +30,8 @@ SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
 
+SYSCALL(ps)
+
 SYSCALL(create_container)
 SYSCALL(destroy_container)
 SYSCALL(join_container)

@@ -103,6 +103,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_ps(void);
 
 extern int sys_create_container(void);
 extern int sys_destroy_container(void);
@@ -131,6 +132,7 @@ static int (*syscalls[])(void) = {
 [SYS_link]                    sys_link,
 [SYS_mkdir]                   sys_mkdir,
 [SYS_close]                   sys_close,
+[SYS_ps]                      sys_ps,
 [SYS_create_container]        sys_create_container,
 [SYS_destroy_container]       sys_destroy_container,
 [SYS_join_container]          sys_join_container,

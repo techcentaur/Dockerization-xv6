@@ -23,11 +23,12 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int ps(void);
 
-uint create_container(void);
-uint destroy_container(uint);
-uint join_container(uint);
-uint leave_container(void);
+int create_container(void);
+int destroy_container(uint);
+int join_container(uint);
+int leave_container(void);
 
 // ulib.c
 int stat(const char*, struct stat*);
