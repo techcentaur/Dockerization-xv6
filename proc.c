@@ -581,6 +581,13 @@ uint join_container(uint containerId) {
 
     requiredContainer->procReferenceTable[requiredContainer->nextFreeIndex].procAlive = 1;
     requiredContainer->procReferenceTable[requiredContainer->nextFreeIndex].pointerToProc = p;
+
+    // find next free index
+    for (int i=1; i<NPROC; i++) {
+      if (requiredContainer->procReferenceTable[(requiredContainer->nextFreeIndex+i)%NPROC].procAlive==0) {
+        requiredContainer->nextFreeIndex = (requiredContainer->nextFreeIndex+i)%NPROC;
+      }
+    }
   }
   return -1;
 }
@@ -591,6 +598,14 @@ uint leave_container(void) {
   if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
     p->containerId = -1; // fix the wrong containerId
     return -1; // was never in a valid container
+  }
+
+  // remove/kill process from container proc table
+  container* c = &containers[p->containerId];
+  for (int i=0; i<NPROC; i++) {
+    if (p==&(c->procReferenceTable[i].pointerToProc)) {
+      c->procReferenceTable[i].procAlive = 0;
+    }
   }
 
   int leftContainerOfId = p->containerId;
