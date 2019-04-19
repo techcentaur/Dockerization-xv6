@@ -70,7 +70,8 @@ typedef struct procReference {
 typedef struct containerType {
   procRef procReferenceTable[NPROC]; //list of processes in container
   int containerAlive; // is container alive?
-  int nextFreeIndex;
+  int nextProcRefTableFreeIndex;
+  int lastScheduleProcRefTableIndex;
 } container;
 
 const int maxContainerNum = 10;

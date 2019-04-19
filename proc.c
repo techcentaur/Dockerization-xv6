@@ -311,6 +311,19 @@ wait(void)
   }
 }
 
+// makes only 1 process from container's procReferenceTable RUNNABLE in kernel's pTable
+void containerScheduler(uint containerId) {
+  container* c = &containers[containerId];
+  for (int i=0; i<NPROC; i++) {
+    procRef* pr = &(c->procReferenceTable[(c->lastScheduleProcRefTableIndex+i)%NPROC]);
+    if (!(pr->procAlive>0) || (pr->pointerToProc->vState!=RUNNABLE)) continue;
+    
+    pr->pointerToProc->state = RUNNABLE;
+    c->lastScheduleProcRefTableIndex = (c->lastScheduleProcRefTableIndex+i)%NPROC;
+    return;
+  }
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -333,6 +346,17 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      
+      // run every alive container's scheduler only once in every kernel pTable round robin scheduling cycle
+      if (p == ptable.proc) {
+        for (int i=0; i<maxContainerNum; i++) {
+          // if container is alive then call its scheduler
+          if (containers[i].containerAlive>0) {
+            containerScheduler((uint) i);
+          }
+        }
+      }
+
       if(p->state != RUNNABLE)
         continue;
 
@@ -559,10 +583,6 @@ void resetContainer(uint containerId) {
   }
 }
 
-void addToContainerPTable(uint containerId) {
-
-}
-
 int getPTableIndex(struct proc* p) {
   if ((p<&ptable.proc[0])&&(p>&ptable.proc[NPROC])) {
     return -1;
@@ -579,13 +599,13 @@ uint join_container(uint containerId) {
     p->vState = p->state;
     p->state = SLEEPING;
 
-    requiredContainer->procReferenceTable[requiredContainer->nextFreeIndex].procAlive = 1;
-    requiredContainer->procReferenceTable[requiredContainer->nextFreeIndex].pointerToProc = p;
+    requiredContainer->procReferenceTable[requiredContainer->nextProcRefTableFreeIndex].procAlive = 1;
+    requiredContainer->procReferenceTable[requiredContainer->nextProcRefTableFreeIndex].pointerToProc = p;
 
     // find next free index
     for (int i=1; i<NPROC; i++) {
-      if (requiredContainer->procReferenceTable[(requiredContainer->nextFreeIndex+i)%NPROC].procAlive==0) {
-        requiredContainer->nextFreeIndex = (requiredContainer->nextFreeIndex+i)%NPROC;
+      if (requiredContainer->procReferenceTable[(requiredContainer->nextProcRefTableFreeIndex+i)%NPROC].procAlive==0) {
+        requiredContainer->nextProcRefTableFreeIndex = (requiredContainer->nextProcRefTableFreeIndex+i)%NPROC;
       }
     }
   }
