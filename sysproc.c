@@ -90,7 +90,24 @@ sys_uptime(void)
   return xticks;
 }
 
-uint create_container(void);
-uint destroy_container(uint);
-uint join_container(uint);
-uint leave_container(void);
+uint sys_create_container(void) {
+	return create_container();
+}
+
+uint sys_destroy_container(uint containerId) {
+	if (argint(0, &containerId) < 0) {
+		return -1;
+	}
+	return destroy_container(containerId);
+}
+
+uint sys_join_container(uint containerId) {
+	if (argint(0, &containerId) < 0) {
+		return -1;
+	}
+	return join_container(containerId);
+}
+
+uint sys_leave_container(void) {
+	return leave_container();
+}

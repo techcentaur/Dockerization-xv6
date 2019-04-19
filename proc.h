@@ -60,6 +60,7 @@ struct proc {
 //   fixed-size stack
 //   expandable heap
 
+// DS for containers
 typedef struct procReference {
   int procAlive;  // is proces alive?
   // int indexInPTable; //index in p table
