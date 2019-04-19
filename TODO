@@ -1,0 +1,3 @@
+yash
+    proc.c
+- remove proc from reference table when they are ought to be removed. exit kill fork etc
