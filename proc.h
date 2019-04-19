@@ -61,15 +61,18 @@ struct proc {
 //   expandable heap
 
 typedef struct procReference {
-  int procAlive;
-  int ptableIndex;
+  int procAlive;  // is proces alive?
+  // int indexInPTable; //index in p table
+  struct proc* pointerToProc;
 } procRef;
 
 typedef struct containerType {
-  procRef procReferenceTable[NPROC];
-  int containerAlive;
+  procRef procReferenceTable[NPROC]; //list of processes in container
+  int containerAlive; // is container alive?
+  int nextFreeIndex;
 } container;
 
 const int maxContainerNum = 10;
 
+// container table
 container containers[maxContainerNum];

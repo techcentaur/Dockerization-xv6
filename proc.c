@@ -543,10 +543,58 @@ uint create_container(void) {
   return -1;
 }
 
-uint destroy_container(uint container_id) {
-  if (container_id<maxContainerNum) {
-    containers[container_id].containerAlive = 0;
+uint destroy_container(uint containerId) {
+  if (containerId<maxContainerNum) {
+    containers[containerId].containerAlive = 0;
+    resetContainer(containerId);
     return 0;
   }
   return -1;
+}
+
+void resetContainer(uint containerId) {
+  container* requiredContainer = &containers[containerId];
+  for (int i=0; i<NPROC; i++) {
+    requiredContainer->procReferenceTable[i].procAlive = 0;
+  }
+}
+
+void addToContainerPTable(uint containerId) {
+
+}
+
+int getPTableIndex(struct proc* p) {
+  if ((p<&ptable.proc[0])&&(p>&ptable.proc[NPROC])) {
+    return -1;
+  }
+  return (p-&ptable.proc[0])/sizeof(struct proc);
+}
+
+uint join_container(uint containerId) {
+  container* requiredContainer = &(containers[containerId]);
+  if(requiredContainer->containerAlive > 0){
+    struct proc* p = myproc();
+    p->containerId = containerId;
+
+    p->vState = p->state;
+    p->state = SLEEPING;
+
+    requiredContainer->procReferenceTable[requiredContainer->nextFreeIndex].procAlive = 1;
+    requiredContainer->procReferenceTable[requiredContainer->nextFreeIndex].pointerToProc = p;
+  }
+  return -1;
+}
+
+uint leave_container(void) {
+  struct proc* p = myproc();
+
+  if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
+    p->containerId = -1; // fix the wrong containerId
+    return -1; // was never in a valid container
+  }
+
+  int leftContainerOfId = p->containerId;
+  p->containerId = -1;
+  p->state = p->vState;
+  return leftContainerOfId; // return Id of container in which proc was.
 }
