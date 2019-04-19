@@ -12,6 +12,9 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+// container table
+container containers[maxContainerNum];
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -312,7 +315,7 @@ wait(void)
 }
 
 // makes only 1 process from container's procReferenceTable RUNNABLE in kernel's pTable
-void containerScheduler(uint containerId) {
+void containerScheduler(int containerId) {
   container* c = &containers[containerId];
   for (int i=0; i<NPROC; i++) {
     procRef* pr = &(c->procReferenceTable[(c->lastScheduleProcRefTableIndex+i)%NPROC]);
@@ -352,7 +355,7 @@ scheduler(void)
         for (int i=0; i<maxContainerNum; i++) {
           // if container is alive then call its scheduler
           if (containers[i].containerAlive>0) {
-            containerScheduler((uint) i);
+            containerScheduler(i);
           }
         }
       }
@@ -563,26 +566,17 @@ procdump(void)
   }
 }
 
-uint create_container(void) {
+int create_container(void) {
   for (int i=0; i<maxContainerNum; i++) {
     if (containers[i].containerAlive==0) {
       containers[i].containerAlive = 1;
-      return (uint) i;
+      return i;
     }
   }
   return -1;
 }
 
-uint destroy_container(uint containerId) {
-  if (containerId<maxContainerNum) {
-    containers[containerId].containerAlive = 0;
-    resetContainer(containerId);
-    return 0;
-  }
-  return -1;
-}
-
-void resetContainer(uint containerId) {
+void resetContainer(int containerId) {
   container* requiredContainer = &containers[containerId];
   for (int i=0; i<NPROC; i++) {
     requiredContainer->procReferenceTable[i].procAlive = 0;
@@ -592,6 +586,15 @@ void resetContainer(uint containerId) {
   requiredContainer->lastScheduleProcRefTableIndex = 0;
 }
 
+int destroy_container(int containerId) {
+  if (containerId<maxContainerNum) {
+    containers[containerId].containerAlive = 0;
+    resetContainer(containerId);
+    return 0;
+  }
+  return -1;
+}
+
 int getPTableIndex(struct proc* p) {
   if ((p<&ptable.proc[0])&&(p>&ptable.proc[NPROC])) {
     return -1;
@@ -599,7 +602,7 @@ int getPTableIndex(struct proc* p) {
   return (p-&ptable.proc[0])/sizeof(struct proc);
 }
 
-uint join_container(uint containerId) {
+int join_container(int containerId) {
   container* requiredContainer = &(containers[containerId]);
   if(requiredContainer->containerAlive > 0){
     struct proc* p = myproc();
@@ -621,7 +624,7 @@ uint join_container(uint containerId) {
   return -1;
 }
 
-uint leave_container(void) {
+int leave_container(void) {
   struct proc* p = myproc();
 
   if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
@@ -632,7 +635,7 @@ uint leave_container(void) {
   // remove/kill process from container proc table
   container* c = &containers[p->containerId];
   for (int i=0; i<NPROC; i++) {
-    if (p==&(c->procReferenceTable[i].pointerToProc)) {
+    if (p == c->procReferenceTable[i].pointerToProc) {
       c->procReferenceTable[i].procAlive = 0;
     }
   }
@@ -641,4 +644,32 @@ uint leave_container(void) {
   p->containerId = -1;
   p->state = p->vState;
   return leftContainerOfId; // return Id of container in which proc was.
+}
+
+// print all fellow processes visible
+int ps(void) {
+  struct proc* p = myproc();
+  
+  // if not in any container
+  int _container_id = p->containerId;
+  if(_container_id == -1){
+    // print all processes not in any container
+    for(p=ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+      if(p->containerId == -1)
+        cprintf("container: %d pid:%d name:%s\n", p->containerId, p->pid, p->name);
+    }
+  }else if(_container_id < maxContainerNum){
+    // print all processes visible inside container and which are unused
+    for(p=ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+      if(p->containerId == _container_id)
+        if(p->vState != UNUSED){
+          cprintf("container: %d pid:%d name:%s\n", p->containerId, p->pid, p->name);
+        }
+      }
+  }else{
+    return -1;
+  }
+  return 1;
 }

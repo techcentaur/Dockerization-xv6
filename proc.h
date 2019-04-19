@@ -50,7 +50,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  uint containerId;
+  int containerId;
   enum procstate vState;
 };
 
@@ -74,7 +74,4 @@ typedef struct containerType {
   int lastScheduleProcRefTableIndex;
 } container;
 
-const int maxContainerNum = 10;
-
-// container table
-container containers[maxContainerNum];
+#define maxContainerNum 10

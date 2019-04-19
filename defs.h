@@ -121,6 +121,13 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 
+
+int create_container(void);
+int destroy_container(int);
+int join_container(int);
+int leave_container(void);
+int ps(void);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 
