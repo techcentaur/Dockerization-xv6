@@ -32,3 +32,5 @@ SYSCALL(uptime)
 
 SYSCALL(create_container)
 SYSCALL(destroy_container)
+SYSCALL(join_container)
+SYSCALL(leave_container)

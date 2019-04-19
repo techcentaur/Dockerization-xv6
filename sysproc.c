@@ -89,3 +89,8 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint create_container(void);
+uint destroy_container(uint);
+uint join_container(uint);
+uint leave_container(void);
