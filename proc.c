@@ -373,6 +373,12 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+
+      // container save state to vState. make state sleeping
+      if ((p->containerId>-1) && (p->containerId<maxContainerNum)) { // process belonged to a container
+        p->vState = p->state;
+        p->state = SLEEPING;
+      }
     }
     release(&ptable.lock);
 
@@ -581,6 +587,9 @@ void resetContainer(uint containerId) {
   for (int i=0; i<NPROC; i++) {
     requiredContainer->procReferenceTable[i].procAlive = 0;
   }
+  // reset pointers/indexes required by container function
+  requiredContainer->nextProcRefTableFreeIndex = 0;
+  requiredContainer->lastScheduleProcRefTableIndex = 0;
 }
 
 int getPTableIndex(struct proc* p) {
