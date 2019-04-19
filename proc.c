@@ -115,6 +115,9 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // container ready
+  p->containerId = -1;
+  p->vState = p->state;
   return p;
 }
 
