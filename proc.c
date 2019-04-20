@@ -35,6 +35,18 @@ cpuid() {
   return mycpu()-cpus;
 }
 
+// struct proc* get_process()
+// {
+//   struct proc* p = myproc();
+//   return p; 
+// }
+
+// container* get_container(int id)
+// {
+//   container* c = &containers[id];
+//   return c;
+// }
+
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu*
