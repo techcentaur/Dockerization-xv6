@@ -10,10 +10,15 @@ int main(void) {
     if (child1==0) {
         join_container(c1);
         ps();
+        ps();
+        printf(1, "child");
     } else {
         join_container(c2);
         ps();
+        ps();
+        printf(1, "parent");
     }
+    printf(1, "reached");
 
     exit();
 }

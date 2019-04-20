@@ -627,23 +627,28 @@ int join_container(int containerId) {
   return -1;
 }
 
-int leave_container(void) {
-  struct proc* p = myproc();
+int removeFromProcRefTable(int containerId, struct proc* p) {
 
   if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
     p->containerId = -1; // fix the wrong containerId
     return -1; // was never in a valid container
   }
 
-  // remove/kill process from container proc table
   container* c = &containers[p->containerId];
   for (int i=0; i<NPROC; i++) {
     if (p == c->procReferenceTable[i].pointerToProc) {
       c->procReferenceTable[i].procAlive = 0;
+      return containerId;
     }
   }
+  return -1;
+}
 
-  int leftContainerOfId = p->containerId;
+int leave_container(void) {
+  struct proc* p = myproc();
+  // remove/kill process from container proc table
+  int leftContainerOfId = removeFromProcRefTable(p->containerId, p);
+
   p->containerId = -1;
   p->state = p->vState;
   return leftContainerOfId; // return Id of container in which proc was.
