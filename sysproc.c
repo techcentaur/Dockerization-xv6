@@ -115,3 +115,11 @@ int sys_leave_container(void) {
 int sys_ps(void) {
   return ps();
 }
+
+void sys_scheduler_log_on() {
+  scheduler_log_on();
+}
+
+void sys_scheduler_log_off() {
+  scheduler_log_off();
+}

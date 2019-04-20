@@ -126,7 +126,11 @@ int create_container(void);
 int destroy_container(int);
 int join_container(int);
 int leave_container(void);
+
 int ps(void);
+
+void scheduler_log_on();
+void scheduler_log_off();
 
 // swtch.S
 void            swtch(struct context**, struct context*);

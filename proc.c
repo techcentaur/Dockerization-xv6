@@ -14,6 +14,8 @@ struct {
 
 // container table
 container containers[maxContainerNum];
+// container log enabler
+int logContainerScheduler = 0;
 
 static struct proc *initproc;
 
@@ -227,6 +229,22 @@ fork(void)
   return pid;
 }
 
+int removeFromProcRefTable(struct proc* p) {
+  if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
+    p->containerId = -1; // fix the wrong containerId
+    return -1; // was never in a valid container
+  }
+
+  container* c = &containers[p->containerId];
+  for (int i=0; i<NPROC; i++) {
+    if (p == c->procReferenceTable[i].pointerToProc) {
+      c->procReferenceTable[i].procAlive = 0;
+      return p->containerId;
+    }
+  }
+  return -1;
+}
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
@@ -302,6 +320,9 @@ wait(void)
         p->killed = 0;
         p->state = UNUSED;
         release(&ptable.lock);
+
+        // remove from container's procRefTable
+        removeFromProcRefTable(p);
         return pid;
       }
     }
@@ -326,6 +347,10 @@ void containerScheduler(int containerId) {
     
     pr->pointerToProc->state = RUNNABLE;
     c->lastScheduleProcRefTableIndex = (c->lastScheduleProcRefTableIndex+i)%NPROC;
+
+    if (logContainerScheduler>0) {
+      cprintf("Container + %d : Scheduling process + %d\n", containerId, pr->pointerToProc->pid);
+    }
     return;
   }
 }
@@ -579,9 +604,14 @@ int create_container(void) {
   return -1;
 }
 
-void resetContainer(int containerId) {
+void resetContainer(int containerId, int killAll) {
   container* requiredContainer = &containers[containerId];
   for (int i=0; i<NPROC; i++) {
+    if (requiredContainer->procReferenceTable[i].procAlive>0) {
+      if (killAll>0) {
+        kill(requiredContainer->procReferenceTable[i].pointerToProc->pid);
+      }
+    }
     requiredContainer->procReferenceTable[i].procAlive = 0;
   }
   // reset pointers/indexes required by container function
@@ -590,9 +620,9 @@ void resetContainer(int containerId) {
 }
 
 int destroy_container(int containerId) {
-  if (containerId<maxContainerNum) {
+  if ((containerId<maxContainerNum) && (-1<containerId)) {
     containers[containerId].containerAlive = 0;
-    resetContainer(containerId);
+    resetContainer(containerId, 1);
     return 0;
   }
   return -1;
@@ -627,27 +657,10 @@ int join_container(int containerId) {
   return -1;
 }
 
-int removeFromProcRefTable(int containerId, struct proc* p) {
-
-  if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
-    p->containerId = -1; // fix the wrong containerId
-    return -1; // was never in a valid container
-  }
-
-  container* c = &containers[p->containerId];
-  for (int i=0; i<NPROC; i++) {
-    if (p == c->procReferenceTable[i].pointerToProc) {
-      c->procReferenceTable[i].procAlive = 0;
-      return containerId;
-    }
-  }
-  return -1;
-}
-
 int leave_container(void) {
   struct proc* p = myproc();
   // remove/kill process from container proc table
-  int leftContainerOfId = removeFromProcRefTable(p->containerId, p);
+  int leftContainerOfId = removeFromProcRefTable(p);
 
   p->containerId = -1;
   p->state = p->vState;
@@ -680,4 +693,12 @@ int ps(void) {
     return -1;
   }
   return 1;
+}
+
+void scheduler_log_on() {
+  logContainerScheduler = 1;
+}
+
+void scheduler_log_off() {
+  logContainerScheduler = 0;
 }

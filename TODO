@@ -1,3 +1,8 @@
 yash
     proc.c
-- remove proc from reference table when they are ought to be removed. exit kill fork etc
+    - remove proc from reference table when they are ought to be removed. exit kill fork etc
+    - when container destroy kill all process in that container
+
+ankit
+    proc.c
+    - correct ps print format

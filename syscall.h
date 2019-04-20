@@ -25,3 +25,5 @@
 #define SYS_join_container          24
 #define SYS_leave_container         25
 #define SYS_ps         				26
+#define SYS_scheduler_log_on        27
+#define SYS_scheduler_log_off       28
