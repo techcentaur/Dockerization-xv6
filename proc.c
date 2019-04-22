@@ -37,6 +37,18 @@ cpuid() {
   return mycpu()-cpus;
 }
 
+// struct proc* get_process()
+// {
+//   struct proc* p = myproc();
+//   return p; 
+// }
+
+// container* get_container(int id)
+// {
+//   container* c = &containers[id];
+//   return c;
+// }
+
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu*
@@ -673,6 +685,7 @@ int ps(void) {
   
   // if not in any container
   int _container_id = p->containerId;
+  cprintf("%d | %d\n", p->pid, _container_id);
   if(_container_id == -1){
     // print all processes not in any container
     for(p=ptable.proc; p < &ptable.proc[NPROC]; p++)
