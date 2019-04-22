@@ -672,6 +672,7 @@ int ps(void) {
   
   // if not in any container
   int _container_id = p->containerId;
+  cprintf("%d | %d\n", p->pid, _container_id);
   if(_container_id == -1){
     // print all processes not in any container
     for(p=ptable.proc; p < &ptable.proc[NPROC]; p++)

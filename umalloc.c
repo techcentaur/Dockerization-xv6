@@ -6,10 +6,6 @@
 #include "mmu.h"
 #include "proc.h"
 
-// Memory allocator by Kernighan and Ritchie,
-// The C programming Language, 2nd ed.  Section 8.7.
-extern struct proc* my_proc();
-extern container containers[maxContainerNum];
 
 typedef long Align;
 
@@ -63,25 +59,6 @@ morecore(uint nu)
   hp->s.size = nu;
   free((void*)(hp + 1));
   return freep;
-}
-
-void*
-container_malloc(uint nbytes){
-  struct proc* p = my_proc();
-  container* c = &containers[p->containerId];
-
-  void* add = 0;
-  for(int i=0; i<NPROC; i++){
-    if(c->pageTable[i].isUsed==0){
-      add = malloc(nbytes);
-      // void* newadd
-      c->pageTable[i].pid = p->pid;
-      c->pageTable[i].GVA = p->pid;
-      // c->pageTable[i].GPA = (long int)add;
-      break;
-    }
-  }
-  return add;
 }
 
 void*
