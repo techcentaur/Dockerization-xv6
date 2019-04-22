@@ -109,6 +109,9 @@ extern int sys_create_container(void);
 extern int sys_destroy_container(void);
 extern int sys_join_container(void);
 extern int sys_leave_container(void);
+extern int sys_scheduler_log_on();
+extern int sys_scheduler_log_off();
+
 
 static int (*syscalls[])(void) = {
 [SYS_fork]                    sys_fork,
@@ -137,6 +140,8 @@ static int (*syscalls[])(void) = {
 [SYS_destroy_container]       sys_destroy_container,
 [SYS_join_container]          sys_join_container,
 [SYS_leave_container]         sys_leave_container,
+[SYS_scheduler_log_on]        sys_scheduler_log_on,
+[SYS_scheduler_log_off]       sys_scheduler_log_off,
 };
 
 void
