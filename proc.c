@@ -646,7 +646,10 @@ int join_container(int containerId) {
   if(requiredContainer->containerAlive > 0){
     struct proc* p = myproc();
 
-    acquire(&ptable.lock);
+    if (!holding(&ptable.lock)) {
+      cprintf("before\n");
+      acquire(&ptable.lock);
+    }
     p->containerId = containerId;
     p->vState = p->state;
     // p->state = SLEEPING;
@@ -660,6 +663,7 @@ int join_container(int containerId) {
     for (int i=1; i<NPROC; i++) {
       if (requiredContainer->procReferenceTable[(requiredContainer->nextProcRefTableFreeIndex+i)%NPROC].procAlive==0) {
         requiredContainer->nextProcRefTableFreeIndex = (requiredContainer->nextProcRefTableFreeIndex+i)%NPROC;
+        break;
       }
     }
 
