@@ -31,23 +31,13 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+
+
 // Must be called with interrupts disabled
 int
 cpuid() {
   return mycpu()-cpus;
 }
-
-// struct proc* get_process()
-// {
-//   struct proc* p = myproc();
-//   return p; 
-// }
-
-// container* get_container(int id)
-// {
-//   container* c = &containers[id];
-//   return c;
-// }
 
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
@@ -352,16 +342,18 @@ wait(void)
 
 // makes only 1 process from container's procReferenceTable RUNNABLE in kernel's pTable
 void containerScheduler(int containerId) {
+  // cprintf("is this even working");
+  
   container* c = &containers[containerId];
   for (int i=0; i<NPROC; i++) {
     procRef* pr = &(c->procReferenceTable[(c->lastScheduleProcRefTableIndex+i)%NPROC]);
-    if (!(pr->procAlive>0) || (pr->pointerToProc->vState!=RUNNABLE)) continue;
+    if((!(pr->procAlive>0)) || (pr->pointerToProc->vState!=RUNNABLE)) continue;
     
     pr->pointerToProc->state = RUNNABLE;
     c->lastScheduleProcRefTableIndex = (c->lastScheduleProcRefTableIndex+i)%NPROC;
 
     if (logContainerScheduler>0) {
-      cprintf("Container + %d : Scheduling process + %d\n", containerId, pr->pointerToProc->pid);
+      cprintf("Container -> %d : Scheduling process -> %d\n", containerId, pr->pointerToProc->pid);
     }
     return;
   }
@@ -418,9 +410,11 @@ scheduler(void)
       c->proc = 0;
 
       // container save state to vState. make state sleeping
-      if ((p->containerId>-1) && (p->containerId<maxContainerNum)) { // process belonged to a container
+      if ((p->containerId > -1) && (p->containerId< maxContainerNum)) { // process belonged to a container
+
         p->vState = p->state;
         p->state = SLEEPING;
+
       }
     }
     release(&ptable.lock);
@@ -651,10 +645,12 @@ int join_container(int containerId) {
   container* requiredContainer = &(containers[containerId]);
   if(requiredContainer->containerAlive > 0){
     struct proc* p = myproc();
-    p->containerId = containerId;
 
+    acquire(&ptable.lock);
+    p->containerId = containerId;
     p->vState = p->state;
     p->state = SLEEPING;
+    release(&ptable.lock);
 
     requiredContainer->procReferenceTable[requiredContainer->nextProcRefTableFreeIndex].procAlive = 1;
     requiredContainer->procReferenceTable[requiredContainer->nextProcRefTableFreeIndex].pointerToProc = p;
@@ -663,8 +659,11 @@ int join_container(int containerId) {
     for (int i=1; i<NPROC; i++) {
       if (requiredContainer->procReferenceTable[(requiredContainer->nextProcRefTableFreeIndex+i)%NPROC].procAlive==0) {
         requiredContainer->nextProcRefTableFreeIndex = (requiredContainer->nextProcRefTableFreeIndex+i)%NPROC;
+        // got next free index in proc ref table - break now
+        break;
       }
     }
+    return 1;
   }
   return -1;
 }
@@ -674,8 +673,11 @@ int leave_container(void) {
   // remove/kill process from container proc table
   int leftContainerOfId = removeFromProcRefTable(p);
 
+  acquire(&ptable.lock);
   p->containerId = -1;
   p->state = p->vState;
+  release(&ptable.lock);
+
   return leftContainerOfId; // return Id of container in which proc was.
 }
 
@@ -683,29 +685,25 @@ int leave_container(void) {
 int ps(void) {
   struct proc* p = myproc();
   
-  // if not in any container
   int _container_id = p->containerId;
   cprintf("%d | %d\n", p->pid, _container_id);
   if(_container_id == -1){
-    // print all processes not in any container
-    for(p=ptable.proc; p < &ptable.proc[NPROC]; p++)
-    {
+    for(p=ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->containerId == -1)
         cprintf("container: %d pid:%d name:%s\n", p->containerId, p->pid, p->name);
     }
   }else if(_container_id < maxContainerNum){
-    // print all processes visible inside container and which are unused
-    for(p=ptable.proc; p < &ptable.proc[NPROC]; p++)
-    {
-      if(p->containerId == _container_id)
+    for(p=ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->containerId == _container_id){
         if(p->vState != UNUSED){
-          cprintf("container: %d pid:%d name:%s\n", p->containerId, p->pid, p->name);
+          cprintf("container: %d pid: %d name: %s state: %d vState: %d\n", p->containerId, p->pid, p->name, p->state, p->vState);
         }
       }
+    }
   }else{
     return -1;
   }
-  return 1;
+  return 0;
 }
 
 void scheduler_log_on() {
