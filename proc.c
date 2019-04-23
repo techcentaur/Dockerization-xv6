@@ -231,7 +231,6 @@ fork(void)
 
 int removeFromProcRefTable(struct proc* p) {
   if ((p->containerId <= -1) || (p->containerId > maxContainerNum)) {
-    p->containerId = -1; // fix the wrong containerId
     return -1; // was never in a valid container
   }
 
@@ -341,17 +340,20 @@ wait(void)
 // makes only 1 process from container's procReferenceTable RUNNABLE in kernel's pTable
 void containerScheduler(int containerId) {
   container* c = &containers[containerId];
-  for (int i=0; i<NPROC; i++) {
+  for (int i=1; i<NPROC+1; i++) {
     procRef* pr = &(c->procReferenceTable[(c->lastScheduleProcRefTableIndex+i)%NPROC]);
-    if (!(pr->procAlive>0) || (pr->pointerToProc->vState!=RUNNABLE)) continue;
-    
-    pr->pointerToProc->state = RUNNABLE;
-    c->lastScheduleProcRefTableIndex = (c->lastScheduleProcRefTableIndex+i)%NPROC;
+    if (!(!(pr->procAlive>0) || (pr->pointerToProc->vState!=RUNNABLE))) {
+      
+      // ptable already locked
+      pr->pointerToProc->state = RUNNABLE;
 
-    if (logContainerScheduler>0) {
-      cprintf("Container + %d : Scheduling process + %d\n", containerId, pr->pointerToProc->pid);
+      c->lastScheduleProcRefTableIndex = (c->lastScheduleProcRefTableIndex+i)%NPROC;
+
+      if (logContainerScheduler>0) {
+        cprintf("Container + %d : Scheduling process + %d\n", containerId, pr->pointerToProc->pid);
+      }
+      return;
     }
-    return;
   }
 }
 
@@ -383,6 +385,7 @@ scheduler(void)
         for (int i=0; i<maxContainerNum; i++) {
           // if container is alive then call its scheduler
           if (containers[i].containerAlive>0) {
+            // cprintf("container %d alive\n", i);
             containerScheduler(i);
           }
         }
@@ -406,7 +409,7 @@ scheduler(void)
       c->proc = 0;
 
       // container save state to vState. make state sleeping
-      if ((p->containerId>-1) && (p->containerId<maxContainerNum)) { // process belonged to a container
+      if ((p->containerId > -1) && (p->containerId<maxContainerNum)) { // process belonged to a container
         p->vState = p->state;
         p->state = SLEEPING;
       }
@@ -636,13 +639,19 @@ int getPTableIndex(struct proc* p) {
 }
 
 int join_container(int containerId) {
+  if (!((containerId > -1) && (containerId < maxContainerNum))) {
+    return -1;
+  }
   container* requiredContainer = &(containers[containerId]);
   if(requiredContainer->containerAlive > 0){
     struct proc* p = myproc();
-    p->containerId = containerId;
 
+    acquire(&ptable.lock);
+    p->containerId = containerId;
     p->vState = p->state;
-    p->state = SLEEPING;
+    // p->state = SLEEPING;
+    p->state = RUNNABLE;
+    release(&ptable.lock);
 
     requiredContainer->procReferenceTable[requiredContainer->nextProcRefTableFreeIndex].procAlive = 1;
     requiredContainer->procReferenceTable[requiredContainer->nextProcRefTableFreeIndex].pointerToProc = p;
@@ -653,8 +662,13 @@ int join_container(int containerId) {
         requiredContainer->nextProcRefTableFreeIndex = (requiredContainer->nextProcRefTableFreeIndex+i)%NPROC;
       }
     }
+
+    acquire(&ptable.lock);
+
+    sched();
+    return 1;
   }
-  return -1;
+  return -2;
 }
 
 int leave_container(void) {
@@ -662,8 +676,10 @@ int leave_container(void) {
   // remove/kill process from container proc table
   int leftContainerOfId = removeFromProcRefTable(p);
 
+  acquire(&ptable.lock);
   p->containerId = -1;
   p->state = p->vState;
+  release(&ptable.lock);
   return leftContainerOfId; // return Id of container in which proc was.
 }
 
