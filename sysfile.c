@@ -16,6 +16,9 @@
 #include "file.h"
 #include "fcntl.h"
 
+// #include "user.h"
+
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -442,4 +445,204 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+int 
+sys_container_read(void)
+{
+return 0;
+}
+
+int
+sys_container_close(void)
+{
+return 0;
+}
+
+int
+sys_container_write(void)
+{
+return 0;
+}
+
+int
+sys_container_open(void)
+{
+return 0;
+}
+
+
+int
+read_with_args(int fd, int n, char *p)
+{
+  struct file *f;
+  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+    return -1;
+
+  return fileread(f, p, n);
+}
+
+int
+close_with_args(int fd)
+{
+  struct file *f;
+
+  if(argfd(0, &fd, &f) < 0)
+    return -1;
+  myproc()->ofile[fd] = 0;
+  fileclose(f);
+  return 0;
+}
+
+
+int
+open_with_args(char* path, int omode)
+{
+  int fd;
+  struct file *f;
+  struct inode *ip;
+
+  begin_op();
+
+  if(omode & O_CREATE){
+    ip = create(path, T_FILE, 0, 0);
+    if(ip == 0){
+      end_op();
+      return -1;
+    }
+  } else {
+    if((ip = namei(path)) == 0){
+      end_op();
+      return -1;
+    }
+    ilock(ip);
+    if(ip->type == T_DIR && omode != O_RDONLY){
+      iunlockput(ip);
+      end_op();
+      return -1;
+    }
+  }
+
+  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+    if(f)
+      fileclose(f);
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+  iunlock(ip);
+  end_op();
+
+  f->type = FD_INODE;
+  f->ip = ip;
+  f->off = 0;
+  f->readable = !(omode & O_WRONLY);
+  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+  return fd;
+}
+
+
+int
+fstat_with_args(int fd, struct stat *st)
+{
+  struct file *f;
+  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+    return -1;
+
+  return filestat(f, st);
+}
+
+int
+stat_with_args(char *n, struct stat *st)
+{
+  int fd;
+  int r;
+
+  fd = open_with_args(n, O_RDONLY);
+  if(fd < 0)
+    return -1;
+  r = fstat_with_args(fd, st);
+  close_with_args(fd);
+  return r;
+}
+
+char*
+strcpy(char *s, const char *t)
+{
+  char *os;
+
+  os = s;
+  while((*s++ = *t++) != 0)
+    ;
+  return os;
+}
+
+char*
+fmtname(char *path)
+{
+  static char buf[DIRSIZ+1];
+  char *p;
+
+  // Find first character after last slash.
+  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+    ;
+  p++;
+
+  // Return blank-padded name.
+  if(strlen(p) >= DIRSIZ)
+    return p;
+  memmove(buf, p, strlen(p));
+  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+  return buf;
+}
+
+int
+sys_call_ls(void)
+{
+  char buf[512], *p;
+  int fd;
+  struct dirent de;
+  struct stat st;
+
+  char* path = ".";
+
+  if((fd = open_with_args(path, 0)) < 0){
+    cprintf("ls: cannot open %s\n", path);
+    return -1;
+  }
+
+  if(fstat_with_args(fd, &st) < 0){
+    cprintf("ls: cannot stat %s\n", path);
+    close_with_args(fd);
+    return -1;
+  }
+
+  switch(st.type){
+  case T_FILE:
+    cprintf("%s %d %d %d\n", fmtname(path), st.type, st.ino, st.size);
+    break;
+
+  case T_DIR:
+    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+      cprintf("ls: path too long\n");
+      break;
+    }
+    strcpy(buf, path);
+    p = buf+strlen(buf);
+    *p++ = '/';
+    while(read_with_args(fd, sizeof(de), (char *)&de) == sizeof(de)){
+      if(de.inum == 0)
+        continue;
+      memmove(p, de.name, DIRSIZ);
+      p[DIRSIZ] = 0;
+      if(stat_with_args(buf, &st) < 0){
+        cprintf("ls: cannot stat %s\n", buf);
+        continue;
+      }
+      cprintf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+    }
+    break;
+  }
+  close_with_args(fd);
+  return 1;
 }
