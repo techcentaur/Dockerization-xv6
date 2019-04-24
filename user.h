@@ -25,12 +25,20 @@ int sleep(int);
 int uptime(void);
 int ps(void);
 
+// new calls
 int create_container(void);
 int destroy_container(int);
 int join_container(int);
 int leave_container(void);
 void scheduler_log_on();
 void scheduler_log_off();
+
+int container_write(int, const void*, int);
+int container_read(int, void*, int);
+int container_close(int);
+int container_open(const char*, int);
+
+int call_ls(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

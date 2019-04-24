@@ -1,4 +1,6 @@
 #include "types.h"
+#include "param.h"
+
 #include "stat.h"
 #include "user.h"
 #include "fs.h"

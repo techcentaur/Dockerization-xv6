@@ -27,3 +27,10 @@
 #define SYS_ps         				26
 #define SYS_scheduler_log_on        27
 #define SYS_scheduler_log_off       28
+
+#define SYS_container_open          29
+#define SYS_container_write         30
+#define SYS_container_close         31
+#define SYS_container_read        	32
+
+#define SYS_call_ls 				33

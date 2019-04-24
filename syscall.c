@@ -109,9 +109,15 @@ extern int sys_create_container(void);
 extern int sys_destroy_container(void);
 extern int sys_join_container(void);
 extern int sys_leave_container(void);
-extern int sys_scheduler_log_on();
-extern int sys_scheduler_log_off();
+extern int sys_scheduler_log_on(void);
+extern int sys_scheduler_log_off(void);
 
+extern int sys_container_read(void);
+extern int sys_container_open(void);
+extern int sys_container_write(void);
+extern int sys_container_close(void);
+
+extern int sys_call_ls();
 
 static int (*syscalls[])(void) = {
 [SYS_fork]                    sys_fork,
@@ -142,6 +148,11 @@ static int (*syscalls[])(void) = {
 [SYS_leave_container]         sys_leave_container,
 [SYS_scheduler_log_on]        sys_scheduler_log_on,
 [SYS_scheduler_log_off]       sys_scheduler_log_off,
+[SYS_container_close]         sys_container_close,
+[SYS_container_write]         sys_container_write,
+[SYS_container_read]          sys_container_read,
+[SYS_container_open]          sys_container_open,
+[SYS_call_ls]                 sys_call_ls
 };
 
 void
