@@ -75,18 +75,17 @@ typedef struct containerType {
   int lastScheduleProcRefTableIndex;
 } container;
 
-typedef struct fStructEntry{
+typedef struct fstruct{
   int cfd; // container file descriptor
   int fd; // file descriptor
   int pid; // process id
-} fEntries;
+} fentry;
 
-#define maxFilesNum 10
+#define maxfiles 10
 
 struct fTable{
-  fEntries fEntry[maxFilesNum];
-  int lastFileIndex;
-  int nextCfdIndex;
+  int files[maxfiles];
+  int size;
 };
 
 #define maxContainerNum 10

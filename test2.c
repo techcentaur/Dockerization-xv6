@@ -18,29 +18,26 @@ int main(void) {
     child1 = fork();
     if(child1==0){
     	printf(1, "Child with pid: %d + cid %d\n", getpid(), c2);
+        
         int j1 = join_container(c2);
         if(j1<0){
             printf(1, "Can't join container pid: %d\n", getpid());
         }
-        char* msg = (char*)malloc(8);
-        msg = "testfile.txt";
-        int co = container_open(msg, 512);
-        if(co < 0){
-        	printf(1, "Open call unsuccessful!\n");
-        }
+        // char* msg = (char*)malloc(8);
+        // msg = "testfile1.txt";
+        // int co = container_open(msg, 512);
+        // if(co < 0){
+        //     printf(1, "Open call unsuccessful!\n");
+        // }
+        call_ls();
+        sleep(100);
+        call_ls();
+        sleep(100);
     }else{
         join_container(c3);
-        // sleep(50);
-        // ps();
+        sleep(1000);
     }
-
-    if(getpid()==4){
-    	call_ls();
-    }else{
-    	wait();
-    }
-
-
+    wait();
     leave_container();
     exit();
 }

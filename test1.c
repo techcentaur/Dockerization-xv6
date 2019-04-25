@@ -47,11 +47,11 @@ int main(void) {
         ps();
         // printf(1, "parent\n");
         // scheduler_log_off();
-        // wait();
+        wait();
     }
     // printf(1, "reached\n");
 
     // leave_container();
-    // leave_container();
+    leave_container();
     exit();
 }

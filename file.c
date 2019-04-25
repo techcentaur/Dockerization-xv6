@@ -87,6 +87,7 @@ filestat(struct file *f, struct stat *st)
     ilock(f->ip);
     stati(f->ip, st);
     iunlock(f->ip);
+    // cprintf("st.cid %d\n", st->cid);
     return 0;
   }
   return -1;

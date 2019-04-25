@@ -27,6 +27,8 @@ static void itrunc(struct inode*);
 // only one device
 struct superblock sb; 
 
+dipp dipshit;
+
 // Read the super block.
 void
 readsb(int dev, struct superblock *sb)
@@ -231,6 +233,8 @@ iupdate(struct inode *ip)
   dip->minor = ip->minor;
   dip->nlink = ip->nlink;
   dip->size = ip->size;
+  // cprintf("writing...");
+  // dip->cid = ip->cid;
   memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
   log_write(bp);
   brelse(bp);
@@ -304,6 +308,7 @@ ilock(struct inode *ip)
     ip->minor = dip->minor;
     ip->nlink = dip->nlink;
     ip->size = dip->size;
+    // cprintf("reading...");
     memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
     brelse(bp);
     ip->valid = 1;
@@ -446,6 +451,7 @@ stati(struct inode *ip, struct stat *st)
   st->nlink = ip->nlink;
   st->size = ip->size;
   st->cid = ip->cid; // container id
+  // cprintf("st->cid %d | ip->cid %d \n", st->cid, ip->cid);
 }
 
 //PAGEBREAK!

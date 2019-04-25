@@ -15,7 +15,7 @@ struct {
 struct {
   struct spinlock lock;
   struct fTable fTable[maxContainerNum];
-} ftable;
+} ft;
 
 // container table
 container containers[maxContainerNum];
@@ -41,11 +41,10 @@ pinit(void)
 void
 ftable_init(void)
 {
-  initlock(&ftable.lock, "fTable");
+  initlock(&ft.lock, "fTable");
   int i;
   for(i=0; i<maxContainerNum; i++){
-    ftable.fTable[i].lastFileIndex = 0;
-    ftable.fTable[i].nextCfdIndex = 0;
+    ft.fTable[i].size = 0;
   }
 }
 
@@ -731,27 +730,31 @@ void scheduler_log_off() {
   logContainerScheduler = 0;
 }
 
-int update_ftable(int fd){
-  int cid;
 
-  struct proc* p = myproc();
-  cid = p->containerId;
-  cprintf("updating table with fd: %d | cid %d\n", fd, cid);
-  if(cid<0)
-    return -1;
+int update_file_in_container(int cid, int inum)
+{
+  cprintf("SAVE: cid %d -> inum %d\n", cid, inum);
+  acquire(&ft.lock);
 
-  acquire(&ftable.lock);
-  ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].fd = fd;
-  ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].pid = p->pid;
-  ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].cfd = ftable.fTable[cid].nextCfdIndex;
+  ft.fTable[cid].files[ft.fTable[cid].size] = inum;
+  ft.fTable[cid].size += 1;
 
-  cprintf("cfd %d\n", ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].cfd);
-  cprintf("fd%d\n", ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].fd);
-  cprintf("pid %d\n", ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].pid);
-
-  ftable.fTable[cid].nextCfdIndex += 1;
-  ftable.fTable[cid].lastFileIndex += 1;
-  release(&ftable.lock);
-
+  release(&ft.lock);
   return 1;
+}
+
+int is_file_in_container(int cid, int inum){
+
+  acquire(&ft.lock);
+
+  for(int i=0; i<ft.fTable[cid].size; i++){
+    if(ft.fTable[cid].files[i] == inum){
+      cprintf("Got one\n");
+      return 1;
+    }
+  }  
+
+  cprintf("Nope\n");
+  release(&ft.lock);
+  return 0;
 }

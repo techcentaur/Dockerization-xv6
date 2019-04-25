@@ -51,7 +51,13 @@ struct dinode {
 #define DIRSIZ 14
 
 struct dirent {
+  // int some;
   ushort inum;
   char name[DIRSIZ];
 };
 
+typedef struct dipcid{
+  int num[100];
+  int cid[100];
+  int sizefill;
+} dipp;
