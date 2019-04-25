@@ -15,9 +15,10 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
-
 // #include "user.h"
-
+// #include "user.h"
+// extern struct ftable;
+extern int update_ftable(int);
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -242,7 +243,7 @@ bad:
 }
 
 static struct inode*
-create(char *path, short type, short major, short minor)
+create(char *path, short type, short major, short minor, int cid)
 {
   uint off;
   struct inode *ip, *dp;
@@ -268,6 +269,7 @@ create(char *path, short type, short major, short minor)
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
+  ip->cid = cid;
   iupdate(ip);
 
   if(type == T_DIR){  // Create . and .. entries.
@@ -300,7 +302,7 @@ sys_open(void)
   begin_op();
 
   if(omode & O_CREATE){
-    ip = create(path, T_FILE, 0, 0);
+    ip = create(path, T_FILE, 0, 0, -1);
     if(ip == 0){
       end_op();
       return -1;
@@ -336,6 +338,70 @@ sys_open(void)
   return fd;
 }
 
+
+int
+open_not_a_syscall(char* path, int omode)
+{
+  int fd;
+  struct file *f;
+  struct inode *ip;
+
+  struct proc* p = myproc();
+  int cid = p->containerId;
+
+  cprintf("container id: %d\n", cid);
+
+  if(argstr(0, &path) < 0 || argint(1, &omode) < 0){
+    cprintf("1\n");
+    return -1;
+  }
+
+  begin_op();
+
+  cprintf("omode: %d | O_CREATE %d\n", omode, O_CREATE);
+  if(omode & O_CREATE){
+    cprintf("Sir I am in\n");
+    ip = create(path, T_FILE, 0, 0, cid);
+    if(ip == 0){
+      end_op();
+      cprintf("2\n");
+      return -1;
+    }
+  } else {
+    if((ip = namei(path)) == 0){
+      end_op();
+      cprintf("3\n");
+      return -1;
+    }
+    ilock(ip);
+    if(ip->type == T_DIR && omode != O_RDONLY){
+      iunlockput(ip);
+      end_op();
+      cprintf("4\n");
+      return -1;
+    }
+  }
+
+  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+    if(f)
+      fileclose(f);
+    iunlockput(ip);
+    end_op();
+    cprintf("5\n");
+    return -1;
+  }
+  iunlock(ip);
+  end_op();
+
+  f->type = FD_INODE;
+  f->ip = ip;
+  f->off = 0;
+  f->readable = !(omode & O_WRONLY);
+  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+  cprintf("6: fd: %d\n", fd);
+  return fd;
+}
+
 int
 sys_mkdir(void)
 {
@@ -343,7 +409,7 @@ sys_mkdir(void)
   struct inode *ip;
 
   begin_op();
-  if(argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
+  if(argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0, -1)) == 0){
     end_op();
     return -1;
   }
@@ -363,7 +429,7 @@ sys_mknod(void)
   if((argstr(0, &path)) < 0 ||
      argint(1, &major) < 0 ||
      argint(2, &minor) < 0 ||
-     (ip = create(path, T_DEV, major, minor)) == 0){
+     (ip = create(path, T_DEV, major, minor, -1)) == 0){
     end_op();
     return -1;
   }
@@ -447,6 +513,28 @@ sys_pipe(void)
   return 0;
 }
 
+
+// container open
+int
+sys_container_open(void)
+{
+  cprintf("at the beginning\n");
+  // call open get fd
+  char *path;
+  int fd, omode;
+
+  if(argstr(0, &path) < 0 || argint(1, &omode) < 0)
+    return -1;
+
+  cprintf("%s %d\n", path, omode);
+  fd = open_not_a_syscall(path, omode);
+
+  cprintf("fd: %d\n", fd);
+  update_ftable(fd);
+
+  return 1;
+}
+
 int 
 sys_container_read(void)
 {
@@ -461,12 +549,6 @@ return 0;
 
 int
 sys_container_write(void)
-{
-return 0;
-}
-
-int
-sys_container_open(void)
 {
 return 0;
 }
@@ -505,7 +587,7 @@ open_with_args(char* path, int omode)
   begin_op();
 
   if(omode & O_CREATE){
-    ip = create(path, T_FILE, 0, 0);
+    ip = create(path, T_FILE, 0, 0, -1);
     if(ip == 0){
       end_op();
       return -1;
@@ -562,6 +644,9 @@ stat_with_args(char *n, struct stat *st)
   if(fd < 0)
     return -1;
   r = fstat_with_args(fd, st);
+  if(r<0){
+    cprintf("broken call");
+  }
   close_with_args(fd);
   return r;
 }
@@ -604,6 +689,10 @@ sys_call_ls(void)
   struct dirent de;
   struct stat st;
 
+  struct proc* pr = myproc();
+  int cid = pr->containerId;
+
+  cprintf("cid: %d\n", cid);
   char* path = ".";
 
   if((fd = open_with_args(path, 0)) < 0){
@@ -619,7 +708,9 @@ sys_call_ls(void)
 
   switch(st.type){
   case T_FILE:
-    cprintf("%s %d %d %d\n", fmtname(path), st.type, st.ino, st.size);
+    // if((cid == st.cid) || (st.cid == -1) || (st.cid == 0)){
+      cprintf("%d %s %d %d %d\n", st.cid, fmtname(path), st.type, st.ino, st.size);
+    // }
     break;
 
   case T_DIR:
@@ -639,7 +730,9 @@ sys_call_ls(void)
         cprintf("ls: cannot stat %s\n", buf);
         continue;
       }
-      cprintf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+      // if((cid == st.cid) || (st.cid == -1) || (st.cid==0)){
+        cprintf("%d %s %d %d %d\n", st.cid, fmtname(buf), st.type, st.ino, st.size);
+      // }
     }
     break;
   }

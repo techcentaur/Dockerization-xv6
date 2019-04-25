@@ -12,9 +12,16 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+struct {
+  struct spinlock lock;
+  struct fTable fTable[maxContainerNum];
+} ftable;
+
 // container table
 container containers[maxContainerNum];
 // container log enabler
+// ftable fileTable;
+
 int logContainerScheduler = 0;
 
 static struct proc *initproc;
@@ -31,6 +38,16 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+void
+ftable_init(void)
+{
+  initlock(&ftable.lock, "fTable");
+  int i;
+  for(i=0; i<maxContainerNum; i++){
+    ftable.fTable[i].lastFileIndex = 0;
+    ftable.fTable[i].nextCfdIndex = 0;
+  }
+}
 
 
 // Must be called with interrupts disabled
@@ -712,4 +729,29 @@ void scheduler_log_on() {
 
 void scheduler_log_off() {
   logContainerScheduler = 0;
+}
+
+int update_ftable(int fd){
+  int cid;
+
+  struct proc* p = myproc();
+  cid = p->containerId;
+  cprintf("updating table with fd: %d | cid %d\n", fd, cid);
+  if(cid<0)
+    return -1;
+
+  acquire(&ftable.lock);
+  ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].fd = fd;
+  ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].pid = p->pid;
+  ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].cfd = ftable.fTable[cid].nextCfdIndex;
+
+  cprintf("cfd %d\n", ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].cfd);
+  cprintf("fd%d\n", ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].fd);
+  cprintf("pid %d\n", ftable.fTable[cid].fEntry[ftable.fTable[cid].lastFileIndex].pid);
+
+  ftable.fTable[cid].nextCfdIndex += 1;
+  ftable.fTable[cid].lastFileIndex += 1;
+  release(&ftable.lock);
+
+  return 1;
 }

@@ -60,15 +60,6 @@ struct proc {
 //   fixed-size stack
 //   expandable heap
 
-// page table entry
-typedef struct pageTableEntry{
-  int isUsed; // is this slot used?
-  int pid; 
-  long int GVA;
-  long int GPA;
-  long int HVA;
-  long int HPA;
-} PTE;
 
 // DS for containers
 typedef struct procReference {
@@ -82,8 +73,20 @@ typedef struct containerType {
   int containerAlive; // is container alive?
   int nextProcRefTableFreeIndex;
   int lastScheduleProcRefTableIndex;
-
-  PTE pageTable[NPROC];
 } container;
+
+typedef struct fStructEntry{
+  int cfd; // container file descriptor
+  int fd; // file descriptor
+  int pid; // process id
+} fEntries;
+
+#define maxFilesNum 10
+
+struct fTable{
+  fEntries fEntry[maxFilesNum];
+  int lastFileIndex;
+  int nextCfdIndex;
+};
 
 #define maxContainerNum 10
