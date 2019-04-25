@@ -698,7 +698,6 @@ int sys_cont_call_ls(void)
   return 1;
 }
 
-
 int
 sys_call_ls(void)
 {

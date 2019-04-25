@@ -30,14 +30,14 @@ int main(void) {
         //     printf(1, "Open call unsuccessful!\n");
         // }
         cont_call_ls();
-        sleep(100);
-        // cont_call_ls();
-        // sleep(100);
+        leave_container();
+        // kill(getpid());
+        exit();
     }else{
-        join_container(c3);
-        sleep(1000);
+        wait();
+        exit();
+        // join_container(c3);
+        // sleep(1000);
     }
-    wait();
-    leave_container();
-    exit();
+    // wait();
 }
