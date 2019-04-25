@@ -21,6 +21,16 @@
 extern int update_file_in_container(int, int);
 extern int is_file_in_container(int, int);
 
+#define max_start_names 30
+
+struct file_data{
+  char names[max_start_names][20];
+  int ids[max_start_names];
+  int size;
+};
+
+struct file_data fd_data;
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -676,6 +686,19 @@ fmtname(char *path)
   return buf;
 }
 
+void kernel_direc(void){
+  for(int i=0; i<fd_data.size; i++){
+    cprintf("filename: %s | ID: %d\n", fd_data.names[i], fd_data.ids[i]);
+  }
+}
+
+int sys_cont_call_ls(void)
+{
+  kernel_direc();
+  return 1;
+}
+
+
 int
 sys_call_ls(void)
 {
@@ -689,7 +712,7 @@ sys_call_ls(void)
 
   cprintf("[*] LS cid: %d\n", cid);
 
-  char* path = ".";
+  char* path = "./";
   if((fd = open_with_args(path, 0)) < 0){
     cprintf("ls: cannot open %s\n", path);
     return -1;
@@ -726,13 +749,17 @@ sys_call_ls(void)
         cprintf("ls: cannot stat %s\n", buf);
         continue;
       }
-      if(st.ino > 21){
-        // cprintf("DIR: %s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
-      // }else{
-        if(is_file_in_container(cid, st.ino)){
-          cprintf("CONT DIR: %s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
-        }
+
+      // cprintf("%s\n", fmtname(buf));
+      for(int i=0; i<20; i++){
+        fd_data.names[fd_data.size][i] = *(fmtname(buf) + i);
       }
+      // cprintf("%s\n", fd_data.names[fd_data.size]);
+      fd_data.ids[fd_data.size] = st.ino;
+      fd_data.size += 1;
+
+      cprintf("DIR: %s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+
     }
     break;
   }

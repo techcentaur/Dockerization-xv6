@@ -34,3 +34,4 @@
 #define SYS_container_read        	32
 
 #define SYS_call_ls 				33
+#define SYS_cont_call_ls 			34

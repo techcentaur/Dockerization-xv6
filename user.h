@@ -39,6 +39,7 @@ int container_close(int);
 int container_open(const char*, int);
 
 int call_ls(void);
+int cont_call_ls(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -118,6 +118,7 @@ extern int sys_container_write(void);
 extern int sys_container_close(void);
 
 extern int sys_call_ls();
+extern int sys_cont_call_ls();
 
 static int (*syscalls[])(void) = {
 [SYS_fork]                    sys_fork,
@@ -152,7 +153,8 @@ static int (*syscalls[])(void) = {
 [SYS_container_write]         sys_container_write,
 [SYS_container_read]          sys_container_read,
 [SYS_container_open]          sys_container_open,
-[SYS_call_ls]                 sys_call_ls
+[SYS_call_ls]                 sys_call_ls,
+[SYS_cont_call_ls]            sys_cont_call_ls
 };
 
 void

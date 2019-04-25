@@ -29,10 +29,10 @@ int main(void) {
         // if(co < 0){
         //     printf(1, "Open call unsuccessful!\n");
         // }
-        call_ls();
+        cont_call_ls();
         sleep(100);
-        call_ls();
-        sleep(100);
+        // cont_call_ls();
+        // sleep(100);
     }else{
         join_container(c3);
         sleep(1000);
