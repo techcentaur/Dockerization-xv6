@@ -23,21 +23,20 @@ int main(void) {
         if(j1<0){
             printf(1, "Can't join container pid: %d\n", getpid());
         }
-        // char* msg = (char*)malloc(8);
-        // msg = "testfile1.txt";
-        // int co = container_open(msg, 512);
-        // if(co < 0){
-        //     printf(1, "Open call unsuccessful!\n");
-        // }
+        char* msg = (char*)malloc(8);
+        msg = "testfile1";
+        int co = container_open(msg, 512);
+        if(co < 0){
+            printf(1, "Open call unsuccessful!\n");
+        }
+        // // sleep(10);
+        // // cont_call_ls();  
         cont_call_ls();
-        leave_container();
+        // sleep(10000);
+        exit();
+        // leave_container();
         // kill(getpid());
-        exit();
-    }else{
-        wait();
-        exit();
-        // join_container(c3);
-        // sleep(1000);
     }
-    // wait();
+    wait();
+    exit();
 }

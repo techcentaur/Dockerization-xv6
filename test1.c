@@ -3,55 +3,56 @@
 #include "user.h"
 
 int main(void) {
-    scheduler_log_on();
+    call_ls();
+
+    sleep(100);
     int c1 = create_container();
     int c2 = create_container();
+    int c3 = create_container();
 
-    // ps();
+    if(c1<0 || c2<0 || c3<0){
+        printf(1, "Error in creating container!\n");
+    }
 
-    printf(1, "A\n");
-    int child1 = fork();
-    int x = 1;
-    for (int i=1; i<100000; i++) {
-        for (int j=1; j<1000; j++) {
-            if (i%2==0) {
-                x *= i;
-                x *= j;
-            } else {
-                x *= i*i;
-                x *= j*j;
-            }
-            // printf(1, "%d");
+    int child1;
+    child1 = fork();
+    if(child1==0){
+        printf(1, "Child with pid: %d + cid %d\n", getpid(), c2);
+        
+        int j1 = join_container(c2);
+        if(j1<0){
+            printf(1, "Can't join container pid: %d\n", getpid());
         }
-    }
-    for (int i=1; i<100000; i++) {
-        for (int j=1; j<1000; j++) {
-            if (i%2==0) {
-                x *= i;
-                x *= j;
-            } else {
-                x *= i*i;
-                x *= j*j;
-            }
-            // printf(1, "%d");
+        char* msg = (char*)malloc(8);
+        msg = "testfile1.txt";
+        int co = container_open(msg, 512);
+        if(co < 0){
+            printf(1, "Open call unsuccessful!\n");
         }
-    }
-    sleep(100);
-    printf(1, "%d\n", x);
-    if (child1==0) {
-        join_container(c1);
-        ps();
-        // printf(1, "child\n");
-    } else {
-        join_container(c2);
-        ps();
-        // printf(1, "parent\n");
-        // scheduler_log_off();
+        // // sleep(10);
+        // // cont_call_ls();  
+        cont_call_ls();
+        leave_container();
+        // kill(getpid());
+        // exit();
+    }else{
+        int j1 = join_container(c3);
+        if(j1<0){
+            printf(1, "Can't join container pid: %d\n", getpid());
+        }
+        char* msg = (char*)malloc(8);
+        msg = "testfile2.txt";
+        int co = container_open(msg, 512);
+        if(co < 0){
+            printf(1, "Open call unsuccessful!\n");
+        }
+        // sleep(100);
+        cont_call_ls();
+        exit();
         wait();
+        // join_container(c3);
+        // sleep(1000);
     }
-    // printf(1, "reached\n");
-
-    // leave_container();
-    leave_container();
+    // wait();
     exit();
 }

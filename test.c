@@ -21,6 +21,7 @@ int main(void) {
         }
         ps();
         sleep(10);
+        leave_container();
     }else{
         child2 = fork();
         if(child2==0){
@@ -31,10 +32,14 @@ int main(void) {
             }
             sleep(30);
             ps();
+            leave_container();
+            // destroy_container(c2);
         }else{
             join_container(c2);
             sleep(50);
             ps();
+            leave_container();
+            destroy_container(c2);
         }
     }
 
@@ -50,8 +55,6 @@ int main(void) {
     }
     printf(1, "p: %d\n", p);
     // // scheduler_log_off();
-    leave_container();
-
     printf(1, "%d is here\n", getpid());
     exit();
 }
