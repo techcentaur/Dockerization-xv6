@@ -36,7 +36,7 @@ void scheduler_log_off();
 int container_write(int, const void*, int);
 int container_read(int, void*, int);
 int container_close(int);
-int container_open(const char*, int);
+int container_open(char*, int);
 
 int call_ls(void);
 int cont_call_ls(void);

@@ -84,7 +84,8 @@ typedef struct fstruct{
 #define maxfiles 10
 
 struct fTable{
-  int files[maxfiles];
+  char names[maxfiles][20];
+  int ids[maxfiles];
   int size;
 };
 
