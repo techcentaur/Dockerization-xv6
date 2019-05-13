@@ -13,7 +13,6 @@ struct {
 } ptable;
 
 struct {
-  struct spinlock lock;
   struct fTable fTable[maxContainerNum];
 } ft;
 
@@ -38,15 +37,15 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
-void
-ftable_init(void)
-{
-  initlock(&ft.lock, "fTable");
-  int i;
-  for(i=0; i<maxContainerNum; i++){
-    ft.fTable[i].size = 0;
-  }
-}
+// void
+// ftable_init(void)
+// {
+//   initlock(&ft.lock, "fTable");
+//   int i;
+//   for(i=0; i<maxContainerNum; i++){
+//     ft.fTable[i].size = 0;
+//   }
+// }
 
 
 // Must be called with interrupts disabled
@@ -73,6 +72,7 @@ mycpu(void)
       return &cpus[i];
   }
   panic("unknown apicid\n");
+  // return &cpus[0];
 }
 
 // Disable interrupts so that we are not rescheduled
@@ -453,8 +453,8 @@ sched(void)
 
   if(!holding(&ptable.lock))
     panic("sched ptable.lock");
-  if(mycpu()->ncli != 1)
-    panic("sched locks");
+  // if(mycpu()->ncli != 1)
+  //   panic("sched locks");
   if(p->state == RUNNING)
     panic("sched running");
   if(readeflags()&FL_IF)
@@ -731,30 +731,39 @@ void scheduler_log_off() {
 }
 
 
-int update_file_in_container(int cid, int inum)
-{
-  cprintf("SAVE: cid %d -> inum %d\n", cid, inum);
-  acquire(&ft.lock);
+// int is_file_in_container(int cid, int inum){
+//   acquire(&ft.lock);
 
-  ft.fTable[cid].files[ft.fTable[cid].size] = inum;
+//   for(int i=0; i<ft.fTable[cid].size; i++){
+//     if(ft.fTable[cid].files[i] == inum){
+//       cprintf("Got one\n");
+//       return 1;
+//     }
+//   }  
+
+//   cprintf("Nope\n");
+//   release(&ft.lock);
+//   return 0;
+// }
+
+int save_in_container(char* path, int inum, int cid){
+  cprintf("SAVE: name %s -> cid %d -> inum %d\n", path, cid, inum);
+
+  for(int i=0; i<20; i++){
+    ft.fTable[cid].names[ft.fTable[cid].size][i] = *(path + i);
+  }
+
+  ft.fTable[cid].ids[ft.fTable[cid].size] = inum;
   ft.fTable[cid].size += 1;
-
-  release(&ft.lock);
   return 1;
 }
 
-int is_file_in_container(int cid, int inum){
-
-  acquire(&ft.lock);
+void print_files_in_container(void){
+  
+  struct proc* p = myproc();
+  int cid = p->containerId;
 
   for(int i=0; i<ft.fTable[cid].size; i++){
-    if(ft.fTable[cid].files[i] == inum){
-      cprintf("Got one\n");
-      return 1;
-    }
-  }  
-
-  cprintf("Nope\n");
-  release(&ft.lock);
-  return 0;
+    cprintf("filename: %s | ID: %d | CID: %d\n", ft.fTable[cid].names[i], ft.fTable[cid].ids[i], cid);
+  }
 }

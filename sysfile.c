@@ -18,8 +18,10 @@
 // #include "user.h"
 // #include "user.h"
 // extern struct ftable;
-extern int update_file_in_container(int, int);
-extern int is_file_in_container(int, int);
+// extern int update_file_in_container(int, int);
+// extern int is_file_in_container(int, int);
+extern int save_in_container(char*, int, int);
+extern void print_files_in_container(void);
 
 #define max_start_names 30
 
@@ -371,9 +373,9 @@ open_not_a_syscall(char* path, int omode)
   if(omode & O_CREATE){
     ip = create(path, T_FILE, 0, 0, cid);
 
-    // got ip (save the mapping ip->inum: cid)
-    cprintf("Map: ip->inum %d | cid: %d", ip->inum, cid);
-    update_file_in_container(cid, ip->inum);
+    // save
+    // path - inum - container based
+    save_in_container(path, ip->inum, cid);
 
     if(ip == 0){
       end_op();
@@ -526,7 +528,7 @@ sys_pipe(void)
 int
 sys_container_open(void)
 {
-  cprintf("[.] Container OPEN syscall\n");
+  // cprintf("[.] Container OPEN syscall\n");
   // call open get fd
   char *path;
   int fd, omode;
@@ -534,9 +536,9 @@ sys_container_open(void)
   if(argstr(0, &path) < 0 || argint(1, &omode) < 0)
     return -1;
 
-  cprintf("Path: %s | OMODE: %d\n", path, omode);
+  // cprintf("Path: %s | OMODE: %d\n", path, omode);
   fd = open_not_a_syscall(path, omode);
-  cprintf("OPEN FD: %d\n", fd);
+  cprintf("", fd);
 
   return 1;
 }
@@ -550,7 +552,15 @@ return 0;
 int
 sys_container_close(void)
 {
-return 0;
+  int fd;
+  struct file *f;
+
+  if(argfd(0, &fd, &f) < 0)
+    return -1;
+  myproc()->ofile[fd] = 0;
+  fileclose(f);
+
+  return 0;
 }
 
 int
@@ -695,6 +705,7 @@ void kernel_direc(void){
 int sys_cont_call_ls(void)
 {
   kernel_direc();
+  print_files_in_container();
   return 1;
 }
 
